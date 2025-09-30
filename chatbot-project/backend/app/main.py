@@ -1,17 +1,11 @@
-# backend/app/main.py
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import openai
 import os
-from dotenv import load_dotenv
-
-# .env फाइलमधून API key वाचतो
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+import openai
 
 app = FastAPI()
 
-# frontend ला backend शी बोलता यावं म्हणून CORS allow केलं आहे
+# CORS setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,23 +14,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Load API key
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
 @app.post("/chat")
-async def chat(request: Request):
-    data = await request.json()
-    user_message = data.get("message")
+async def chat(request: dict):
+    user_message = request.get("message")
 
-    if not user_message:
-        return {"reply": "काहीतरी मजकूर टाका."}
-
-    # OpenAI ChatGPT API call
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",   # इथे GPT model वापरलाय
-        messages=[
-            {"role": "system", "content": "तू एक helpful assistant आहेस."},
-            {"role": "user", "content": user_message}
-        ]
+        model="gpt-3.5-turbo",   # free वापरत असशील तर HuggingFace API वापर
+        messages=[{"role": "user", "content": user_message}]
     )
 
-    reply = response["choices"][0]["message"]["content"]
-    return {"reply": reply}
-
+    return {"reply": response["choices"][0]["message"]["content"]}
